@@ -16,6 +16,9 @@ rails = case rails_version
 
 gem "rails", rails
 
+gem "devise", ENV["DEVISE_VERSION"] if ENV["DEVISE_VERSION"]
+gem "rotp", ENV["ROTP_VERSION"] if ENV["ROTP_VERSION"]
+
 if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.2.0')
   gem "test-unit", "~> 3.0"
 end

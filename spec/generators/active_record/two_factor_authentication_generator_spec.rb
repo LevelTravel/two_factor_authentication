@@ -23,7 +23,7 @@ describe ActiveRecord::Generators::TwoFactorAuthenticationGenerator, type: :gene
     describe 'the migration' do
       subject { migration_file('db/migrate/two_factor_authentication_add_to_users.rb') }
 
-      it { is_expected.to exist }
+      it { is_expected.to satisfy { |path| File.exist?(path) } }
       it { is_expected.to be_a_migration }
       it { is_expected.to contain /def change/ }
       it { is_expected.to contain /add_column :users, :second_factor_attempts_count, :integer, default: 0/ }
