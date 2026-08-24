@@ -105,6 +105,19 @@ describe Devise::Models::TwoFactorAuthenticatable do
 
     it_behaves_like 'authenticate_totp', GuestUser.new
     it_behaves_like 'authenticate_totp', EncryptedUser.new
+
+    it 'persists the verification timestamp and rejects the same code after reload' do
+      instance = create_user('not_encrypted')
+      instance.update!(otp_secret_key: '2z6hxkdwi3uvrnpn')
+      code = TotpHelper.new(instance.otp_secret_key, instance.class.otp_length).totp_code
+
+      expect(instance.authenticate_totp(code)).to eq(true)
+      instance.save!
+
+      instance.reload
+      expect(instance.totp_timestamp).to be_a(Time)
+      expect(instance.authenticate_totp(code)).to eq(false)
+    end
   end
 
   describe '#send_two_factor_authentication_code' do

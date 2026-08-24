@@ -17,6 +17,12 @@ rails = case rails_version
 
 gem "rails", rails
 
+devise_version = ENV["DEVISE_VERSION"]
+gem "devise", devise_version if devise_version
+
+rotp_version = ENV["ROTP_VERSION"]
+gem "rotp", rotp_version if rotp_version
+
 ruby_version = Gem::Version.new(RUBY_VERSION)
 
 if ruby_version >= Gem::Version.new('2.2.0')
