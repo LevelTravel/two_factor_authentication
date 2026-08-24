@@ -11,6 +11,7 @@ RSpec.configure do |config|
   config.include ControllerHelper, type: :controller
 
   config.before(:example, type: :controller) do
-    @request.env['devise.mapping'] = Devise.mappings[:user]
+    Rails.application.reload_routes! unless Devise.mappings.key?(:user)
+    @request.env['devise.mapping'] = Devise.mappings.fetch(:user)
   end
 end
