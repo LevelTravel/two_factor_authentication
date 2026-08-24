@@ -118,6 +118,16 @@ describe Devise::Models::TwoFactorAuthenticatable do
       expect(instance.totp_timestamp).to be_a(Time)
       expect(instance.authenticate_totp(code)).to eq(false)
     end
+
+    it 'decrypts a secret encrypted before the Devise 5 upgrade' do
+      allow(Devise).to receive(:otp_secret_encryption_key).and_return('a' * 32)
+      instance = EncryptedUser.new
+      instance.encrypted_otp_secret_key = "qqtceBScHArOXNFRTZfNyDih+kzYDujh7emlkGi4V6A=\n"
+      instance.encrypted_otp_secret_key_iv = "ezgScHq7FcShFtQ2WYPP2g==\n"
+      instance.encrypted_otp_secret_key_salt = "_NemuOAzhuv7qvoPP3RVyBA==\n"
+
+      expect(instance.otp_secret_key).to eq('JBSWY3DPEHPK3PXP')
+    end
   end
 
   describe '#send_two_factor_authentication_code' do
