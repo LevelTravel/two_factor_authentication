@@ -105,6 +105,41 @@ describe Devise::Models::TwoFactorAuthenticatable do
 
     it_behaves_like 'authenticate_totp', GuestUser.new
     it_behaves_like 'authenticate_totp', EncryptedUser.new
+
+    it 'keeps a legacy encrypted secret and replay protection across persistence' do
+      allow(Devise).to receive(:otp_secret_encryption_key).and_return('a' * 32)
+      ActiveRecord::Migration.suppress_messages do
+        ActiveRecord::Schema.define do
+          create_table :persisted_encrypted_users, force: :cascade do |table|
+            table.string :encrypted_otp_secret_key
+            table.string :encrypted_otp_secret_key_iv
+            table.string :encrypted_otp_secret_key_salt
+            table.timestamp :totp_timestamp
+          end
+        end
+      end
+
+      user_class = Class.new(ActiveRecord::Base) do
+        self.table_name = 'persisted_encrypted_users'
+        include Devise::Models::TwoFactorAuthenticatable
+        has_one_time_password encrypted: true
+      end
+      user = user_class.create!(
+        encrypted_otp_secret_key: "qqtceBScHArOXNFRTZfNyDih+kzYDujh7emlkGi4V6A=\n",
+        encrypted_otp_secret_key_iv: "ezgScHq7FcShFtQ2WYPP2g==\n",
+        encrypted_otp_secret_key_salt: "_NemuOAzhuv7qvoPP3RVyBA==\n"
+      )
+      secret = 'JBSWY3DPEHPK3PXP'
+      code = TotpHelper.new(secret, user.class.otp_length).totp_code
+
+      expect(user.otp_secret_key).to eq(secret)
+      expect(user.authenticate_totp(code)).to eq(true)
+      user.save!
+
+      user.reload
+      expect(user.totp_timestamp).to be_a(Time)
+      expect(user.authenticate_totp(code)).to eq(false)
+    end
   end
 
   describe '#send_two_factor_authentication_code' do
@@ -137,8 +172,11 @@ describe Devise::Models::TwoFactorAuthenticatable do
         end
 
         it "returns uri with user's email" do
-          expect(instance.provisioning_uri).
-            to match(%r{otpauth://totp/houdini@example.com\?secret=\w{32}})
+          uri = URI.parse(instance.provisioning_uri)
+          params = URI.decode_www_form(uri.query).to_h
+
+          expect(URI.decode_www_form_component(uri.path)).to eq('/houdini@example.com')
+          expect(params['secret']).to match(/\w{32}/)
         end
 
         it 'returns uri with issuer option' do
